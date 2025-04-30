@@ -1,2 +1,3 @@
 wifi_csi_har_dataset
 *.docx
+__pycache__

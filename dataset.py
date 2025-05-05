@@ -12,6 +12,11 @@ DATASET_FOLDER = "./wifi_csi_har_dataset"
 DATA_ROOMS = ["room_1", "room_2", "room_3"]
 DATA_SUBROOMS = [["1", "2", "3", "4"], ["1"], ["1", "2", "3", "4", "5"]]
 
+DATA_ARCH = ["./wifi_csi_har_dataset/room_1/1", "./wifi_csi_har_dataset/room_1/2", "./wifi_csi_har_dataset/room_1/3",
+             "./wifi_csi_har_dataset/room_1/4", "./wifi_csi_har_dataset/room_2/1",
+             "./wifi_csi_har_dataset/room_3/1", "./wifi_csi_har_dataset/room_3/2", "./wifi_csi_har_dataset/room_3/3",
+             "./wifi_csi_har_dataset/room_3/4", "./wifi_csi_har_dataset/room_3/5"]
+
 
 SUBCARRIES_NUM_TWO_HHZ = 56
 SUBCARRIES_NUM_FIVE_HHZ = 114
@@ -20,7 +25,7 @@ PHASE_MIN, PHASE_MAX = 3.1389, 3.1415
 AMP_MIN, AMP_MAX = 0.0, 577.6582
 
 
-def read_csi_data_from_csv(path_to_csv, is_five_hhz=False, antenna_pairs=4):
+def read_csi_data_from_csv(path_to_csv, is_five_hhz=True, antenna_pairs=4):
     """
     Read csi data(amplitude, phase) from .csv data
 
@@ -96,13 +101,10 @@ def read_all_data(is_five_hhz=True, antenna_pairs=4):
 class CSIDataset(Dataset):
     """CSI Dataset."""
 
-    def __init__(self, csv_files = None, window_size=32, step=1):
+    def __init__(self, csv_files, window_size=32, step=1):
         from sklearn import decomposition
 
-        if csv_files:
-            self.amplitudes, self.phases, self.labels = read_all_data_from_files(csv_files)
-        else:
-            self.amplitudes, self.phases, self.labels = read_all_data()
+        self.amplitudes, self.phases, self.labels = read_all_data_from_files(csv_files)
 
         self.amplitudes = calibrate_amplitude(self.amplitudes)
 
@@ -170,15 +172,21 @@ class CSIDataset(Dataset):
         return int((self.labels.shape[0] - self.window) // self.step) + 1
     
 
-def getDataset(self, ):
-    DATASET_FOLDER_CLASS = "./wifi_csi_har_dataset"
-    DATA_ROOMS_CLASS = {"room_1" : ["1", "2", "3", "4"], "room_2": ["1"], "room_3": ["1", "2", "3", "4", "5"]}
-    dataset = []
-    dataloader = []
-    for room, sessions in DATA_ROOMS_CLASS.items():
-        for session in sessions:
-            val_dataset = CSIDataset([f"./{DATASET_FOLDER_CLASS}/{room}/{session}" ])
-            dl = DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=1)
-            dataloader.append(dl)
-            dataset.append(val_dataset)
-    return dataset, dataloader
+# def getDataset(self, ):
+#     DATASET_FOLDER_CLASS = "./wifi_csi_har_dataset"
+#     DATA_ROOMS_CLASS = {"room_1" : ["1", "2", "3", "4"], "room_2": ["1"], "room_3": ["1", "2", "3", "4", "5"]}
+#     dataset = []
+#     dataloader = []
+#     for room, sessions in DATA_ROOMS_CLASS.items():
+#         for session in sessions:
+#             val_dataset = CSIDataset([f"./{DATASET_FOLDER_CLASS}/{room}/{session}" ])
+#             dl = DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=1)
+#             dataloader.append(dl)
+#             dataset.append(val_dataset)
+#     return dataset, dataloader
+
+if __name__ == '__main__':
+    val_dataset = CSIDataset(DATA_ARCH)
+    dl = DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=1)
+
+    print(val_dataset.phases, '\n' + '-'*80 + '\n' ,val_dataset.amplitudes)

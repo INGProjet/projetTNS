@@ -4,7 +4,7 @@ from os import path
 import numpy as np
 import pandas as pd
 
-PATH_TO_DATASET = "./wifi_csi_har_dataset"
+PATH_TO_DATASET = "../wifi_csi_har_dataset"
 DATA_FILENAME = "data.csv"
 LABEL_FILENAME = "label.csv"
 

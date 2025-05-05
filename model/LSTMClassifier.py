@@ -51,7 +51,6 @@ class LSTMClassifier(nn.Module):
         if self.hidden is None:
             self.hidden = self.init_hidden(x.size(0))
 
-        # See: https://discuss.pytorch.org/t/solved-why-we-need-to-detach-variable-which-contains-hidden-representation/1426/2
         lstm_out, _ = self.lstm(x, self.hidden)
 
         y = self.hidden2label(lstm_out[:, -1, :])

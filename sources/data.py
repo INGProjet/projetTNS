@@ -29,7 +29,7 @@ def load_and_process(path):
     data = pd.read_csv(path, header=None, chunksize=10000)
     return np.concatenate([chunk.values for chunk in data])
 
-base_path = r".\wifi_csi_har_dataset"
+base_path = r"../wifi_csi_har_dataset"
 X_list, y_list = [], []
 
 for room in tqdm(['room_1', 'room_2', 'room_3'], desc="Rooms"):

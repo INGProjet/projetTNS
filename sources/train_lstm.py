@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 from dataset import CSIDataset
 from metrics import get_train_metric
-from models import LSTMClassifier
+from model import LSTMClassifier
 from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
@@ -41,19 +41,30 @@ def load_data():
     logging.info("Loading data...")
 
     train_dataset = CSIDataset([
-        "./dataset/bedroom_lviv/1",
-        # "./dataset/bedroom_lviv/2",
-        # "./dataset/bedroom_lviv/3",
-        # "./dataset/vitalnia_lviv/1/",
-        # "./dataset/vitalnia_lviv/2/",
-        # "./dataset/vitalnia_lviv/3/",
-        # "./dataset/vitalnia_lviv/4/"
+        # "./wifi_csi_har_dataset/room_1/1",
+        # "./wifi_csi_har_dataset/room_1/2",
+        # "./wifi_csi_har_dataset/room_1/3",
+        # "./wifi_csi_har_dataset/room_1/4",
+        "./wifi_csi_har_dataset/room_2/1",
+        # "./wifi_csi_har_dataset/room_3/1",
+        # "./wifi_csi_har_dataset/room_3/2",
+        # "./wifi_csi_har_dataset/room_3/3",
+        # "./wifi_csi_har_dataset/room_3/4",
+        # "./wifi_csi_har_dataset/room_3/5"
     ], SEQ_DIM, DATA_STEP)
 
     val_dataset = train_dataset
     # val_dataset = CSIDataset([
-    #     "./dataset/bedroom_lviv/4",
-    #     # "./dataset/vitalnia_lviv/5/"
+    #     "./wifi_csi_har_dataset/room_1/1",
+    #     "./wifi_csi_har_dataset/room_1/2",
+    #     "./wifi_csi_har_dataset/room_1/3",
+    #     "./wifi_csi_har_dataset/room_1/4",
+    #     "./wifi_csi_har_dataset/room_2/1",
+    #     "./wifi_csi_har_dataset/room_3/1",
+    #     "./wifi_csi_har_dataset/room_3/2",
+    #     "./wifi_csi_har_dataset/room_3/3",
+    #     "./wifi_csi_har_dataset/room_3/4",
+    #     "./wifi_csi_har_dataset/room_3/5"
     # ], SEQ_DIM)
 
     logging.info("Data is loaded...")

@@ -1,4 +1,5 @@
 wifi_csi_har_dataset
 *.docx
 .venv
+.idea
 __pycache__

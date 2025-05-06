@@ -1,5 +1,5 @@
 import logging
-import os
+import sys
 
 import torch
 from torch import nn
@@ -13,13 +13,17 @@ from metrics import get_train_metric
 from mealpy import FloatVar
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-logging.info("Device: {}".format(device))
+device = torch.device("cpu")
 
 input_dim = 468
 output_dim = 7
 batch_size = 16
+hidden_dim = 256
+num_layers = 2
+dropout = 0.3
+learning_rate = 0.0022
 
+spinner = ['|', '/', '—', '\\']
 model_path = "./saved_models/best_lstm_model.pth"
 best_path = "./saved_models/best_model.pth"
 data_path = [
@@ -44,14 +48,12 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_w
 class_weights = torch.Tensor([0.113, 0.439, 0.0379, 0.1515, 0.0379, 0.1212, 0.1363]).double().to(device)
 class_weights_inv = 1 / class_weights
 
-# Fonction objectif rapide pour optimiser
-def objective_function(solution):
-    hidden_dim = int(solution[0])
-    num_layers = int(solution[1])
-    dropout = float(solution[2])
-    learning_rate = float(solution[3])
 
-    # ⚠️ corriger dropout si 1 couche
+def objective_function(solution):
+    num_layers = int(solution[0])
+    dropout = float(solution[1])
+    learning_rate = float(solution[2])
+
     if num_layers == 1:
         dropout = 0.0
 
@@ -59,9 +61,11 @@ def objective_function(solution):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     criterion = nn.CrossEntropyLoss(weight=class_weights_inv)
-
-    for epoch in range(2):
+    j = 0
+    for epoch in range(4):
+        j+=1
         model.train(mode=True)
+        i = 0
         for x_batch, y_batch in train_loader:
             if x_batch.size(0) != batch_size:
                 continue
@@ -71,18 +75,21 @@ def objective_function(solution):
             loss = criterion(output, y_batch.long())
             loss.backward()
             optimizer.step()
+            i += 1
+            sys.stdout.write('\r' + spinner[i % len(spinner)] + f' Processing[{j}/4]...')
+            sys.stdout.flush()
 
     _, _, _, val_acc = get_train_metric(model, val_loader, criterion, batch_size)
     _, _, _, train_acc = get_train_metric(model, train_loader, criterion, batch_size)
-    tqdm.write(f"[AOA] hidden_dim={hidden_dim}, num_layers={num_layers}, dropout={dropout:.3f}, lr={learning_rate:.5f} → val_acc={val_acc:.4f}")
+    tqdm.write(f"[AOA] => (num_layers={num_layers}, dropout={dropout:.3f}, lr={learning_rate:.5f}) -> val_acc={val_acc:.4f}")
     return 1 - val_acc
 
 # Définit les bornes des hyperparamètres
 problem_dict = {
     "bounds": FloatVar(
-        lb=[114, 1, 0.0, 0.0014],
-        ub=[568, 3, 0.4, 0.0022],
-        name=["hidden_dim", "num_layers", "dropout", "learning_rate"]
+        lb=[1, 0.0, 0.001],
+        ub=[4, 0.4, 0.005],
+        name=["num_layers", "dropout", "learning_rate"]
     ),
     "minmax": "min",
     "obj_func": objective_function
@@ -90,41 +97,42 @@ problem_dict = {
 
 def train(new_model=False):
     print("Starting AOA optimization...")
-    optimizer_aoa = OriginalAOA(epoch=30, pop_size=10, verbose=True)
-    best_solution = optimizer_aoa.solve(problem_dict)
+    optimizer_aoa = OriginalAOA(epoch=1000, pop_size=10, verbose=True)
+    best_solution = optimizer_aoa.solve(problem_dict, mode='process', n_workers=4)
     best_params = best_solution.solution
-    hidden_dim, num_layers, dropout, learning_rate = int(best_params[0]), int(best_params[1]), float(best_params[2]), float(best_params[3])
+    num_layers, dropout, learning_rate = int(best_params[0]), float(best_params[1]), float(best_params[2])
     dropout = 0.0 if num_layers == 1 else dropout
 
     print("Found best hyperparameters.")
 
-    epochs_start, epochs_end = 0, 50
+    epochs_start, epochs_end = 0, 30
     patience, trials, best_acc = 10, 0, 0
 
     model = LSTMClassifier(input_dim, hidden_dim, num_layers, dropout, False, output_dim, batch_size).double().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    if not new_model:
-        if os.path.exists(best_path):
-            print("Loading saved datas...")
-            checkpoint = torch.load(best_path)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            epochs_start = checkpoint['epoch'] + 1
-            best_acc = checkpoint['best_acc']
-            print(f"Starting at epoch={epochs_start}, best_acc={best_acc:.4f}")
-        else:
-            print("No saves found, starting a new training...")
-    else:
-        print("Starting a new training...")
+    # if not new_model:
+    #     if os.path.exists(best_path):
+    #         print("Loading saved datas...")
+    #         checkpoint = torch.load(best_path)
+    #         model.load_state_dict(checkpoint['model_state_dict'])
+    #         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    #         epochs_start = checkpoint['epoch'] + 1
+    #         best_acc = checkpoint['best_acc']
+    #         print(f"Starting at epoch={epochs_start}, best_acc={best_acc:.4f}")
+    #     else:
+    #         print("No saves found, starting a new training...")
+    # else:
+    #     print("Starting a new training...")
 
     scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5)
     criterion = nn.CrossEntropyLoss(weight=class_weights_inv)
 
 
     print("Starting LSTM training...")
-    print(f"Actual parameters: hidden_dim={hidden_dim}, num_layers={num_layers}, dropout={dropout:.3f}, learning_rate={learning_rate}")
-    for epoch in tqdm(range(epochs_start, epochs_end), desc="training epochs"):
-        model.train()
+    print(f"Actual parameters: num_layers={num_layers}, dropout={dropout:.3f}, learning_rate={learning_rate}")
+    for epoch in range(epochs_start, epochs_end):
+        model.train(mode=True)
+        i = 0
         for x_batch, y_batch in train_loader:
             if x_batch.size(0) != batch_size:
                 continue
@@ -134,6 +142,9 @@ def train(new_model=False):
             loss = criterion(output, y_batch.long())
             loss.backward()
             optimizer.step()
+            i += 1
+            sys.stdout.write('\r' + spinner[i % len(spinner)] + ' Processing...')
+            sys.stdout.flush()
 
         val_loss, _, _, val_acc = get_train_metric(model, val_loader, criterion, batch_size)
         train_loss, _, _, train_acc = get_train_metric(model, train_loader, criterion, batch_size)
@@ -162,5 +173,7 @@ def train(new_model=False):
     torch.save(model.state_dict(), model_path)
 
 if __name__ == '__main__':
+
+    logging.info("Device: {}".format(device))
     train()
 

@@ -18,7 +18,6 @@ device = torch.device("cpu")
 input_dim = 468
 output_dim = 7
 batch_size = 16
-cores = 4
 hidden_dim = 256
 num_layers = 2
 dropout = 0.3
@@ -96,22 +95,26 @@ problem_dict = {
     "obj_func": objective_function
 }
 
-def train(new_model=False):
-    print("Starting AOA optimization...")
-    optimizer_aoa = OriginalAOA(epoch=5, pop_size=10, verbose=True)
-    best_solution = optimizer_aoa.solve(problem_dict, mode='process', n_workers=cores)
-    best_params = best_solution.solution
-    num_layers, dropout, learning_rate = int(best_params[0]), float(best_params[1]), float(best_params[2])
-    dropout = 0.0 if num_layers == 1 else dropout
+def train(optimize=True, layers=2, dropout_rate=0.0, lr=0.0015, batch=4, cores = 1, aoa_epoch=5, aoa_pop=10, lstm_epoch=30):
+    num_layers = layers
+    dropout = dropout_rate
+    learning_rate = lr
+    if optimize:
+        print("Starting AOA optimization...")
+        optimizer_aoa = OriginalAOA(epoch=aoa_epoch, pop_size=aoa_pop, verbose=True)
+        best_solution = optimizer_aoa.solve(problem_dict, mode='process', n_workers=cores)
+        best_params = best_solution.solution
+        layers, dropout_rate, lr = int(best_params[0]), float(best_params[1]), float(best_params[2])
+        dropout_rate = 0.0 if layers == 1 else dropout_rate
 
-    print("Found best hyperparameters.")
+        print("Found best hyperparameters.")
 
-    epochs_start, epochs_end = 0, 30
-    patience, trials, best_acc = 4, 0, 0
+    epochs_start, epochs_end = 0, lstm_epoch
+    patience, trials, best_acc = 10 if lstm_epoch > 15 else lstm_epoch/2 + 1, 0, 0
 
 
-    model = LSTMClassifier(input_dim, hidden_dim, num_layers, dropout, False, output_dim, batch_size).double().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    model = LSTMClassifier(input_dim, hidden_dim, layers, dropout_rate, False, output_dim, batch).double().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     # if not new_model:
     #     if os.path.exists(best_path):
     #         print("Loading saved datas...")
@@ -131,12 +134,12 @@ def train(new_model=False):
 
 
     print("Starting LSTM training...")
-    print(f"Actual parameters: num_layers={num_layers}, dropout={dropout:.3f}, learning_rate={learning_rate:.5f}")
+    print(f"Actual parameters: num_layers={layers}, dropout={dropout_rate:.3f}, learning_rate={lr:.5f}")
     for epoch in range(epochs_start, epochs_end):
         model.train(mode=True)
         i = 0
         for x_batch, y_batch in train_loader:
-            if x_batch.size(0) != batch_size:
+            if x_batch.size(0) != batch:
                 continue
             x_batch, y_batch = x_batch.double().to(device), y_batch.long().to(device)
             optimizer.zero_grad()
@@ -148,8 +151,8 @@ def train(new_model=False):
             sys.stdout.write('\r' + spinner[i % len(spinner)] + f' Processing[{i}/{len(train_loader)}]...')
             sys.stdout.flush()
 
-        val_loss, _, _, val_acc = get_train_metric(model, val_loader, criterion, batch_size)
-        train_loss, _, _, train_acc = get_train_metric(model, train_loader, criterion, batch_size)
+        val_loss, _, _, val_acc = get_train_metric(model, val_loader, criterion, batch)
+        train_loss, _, _, train_acc = get_train_metric(model, train_loader, criterion, batch)
         tqdm.write(f"Epoch {epoch + 1}/{epochs_end} - Val Acc: {val_acc:.4f}, Val Loss: {val_loss:.4f} - Train Loss: {train_loss:.2f}, Train Acc.: {train_acc:2.2%}")
         if val_acc > best_acc:
             trials = 0

@@ -28,8 +28,8 @@ bidirectional = False
 SEQ_DIM = 1024
 DATA_STEP = 8
 
-BATCH_SIZE = 4
-EPOCHS_NUM = 100
+BATCH_SIZE = 16
+EPOCHS_NUM = 5
 LEARNING_RATE = 0.00146
 
 class_weights = torch.Tensor([0.113, 0.439, 0.0379, 0.1515, 0.0379, 0.1212, 0.1363]).double().to(device)
@@ -41,16 +41,16 @@ def load_data():
     logging.info("Loading data...")
 
     train_dataset = CSIDataset([
-        # "./wifi_csi_har_dataset/room_1/1",
-        # "./wifi_csi_har_dataset/room_1/2",
-        # "./wifi_csi_har_dataset/room_1/3",
-        # "./wifi_csi_har_dataset/room_1/4",
-        "./wifi_csi_har_dataset/room_2/1",
-        # "./wifi_csi_har_dataset/room_3/1",
-        # "./wifi_csi_har_dataset/room_3/2",
-        # "./wifi_csi_har_dataset/room_3/3",
-        # "./wifi_csi_har_dataset/room_3/4",
-        # "./wifi_csi_har_dataset/room_3/5"
+        "../wifi_csi_har_dataset/room_1/1",
+        "../wifi_csi_har_dataset/room_1/2",
+        "../wifi_csi_har_dataset/room_1/3",
+        "../wifi_csi_har_dataset/room_1/4",
+        "../wifi_csi_har_dataset/room_2/1",
+        "../wifi_csi_har_dataset/room_3/1",
+        "../wifi_csi_har_dataset/room_3/2",
+        "../wifi_csi_har_dataset/room_3/3",
+        "../wifi_csi_har_dataset/room_3/4",
+        "../wifi_csi_har_dataset/room_3/5"
     ], SEQ_DIM, DATA_STEP)
 
     val_dataset = train_dataset
@@ -80,7 +80,7 @@ def train():
     trn_dl, val_dl = load_data()
 
 
-    model = LSTMClassifier(input_dim, hidden_dim, layer_dim, dropout_rate, bidirectional, output_dim, BATCH_SIZE)
+    model = LSTMClassifier(input_dim, hidden_dim, layer_dim, dropout_rate, False, output_dim, BATCH_SIZE)
 
     model = model.double().to(device)
 
@@ -137,7 +137,7 @@ def train():
         if val_acc > best_acc:
             trials = 0
             best_acc = val_acc
-            torch.save(model.state_dict(), 'saved_models/simple_lstm_best.pth')
+            torch.save(model.state_dict(), '../saved_models/simple_lstm_best.pth')
             logging.info(f'Epoch {epoch} best model saved with accuracy: {best_acc:2.2%}')
         else:
             trials += 1

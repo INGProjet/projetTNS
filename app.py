@@ -1,4 +1,6 @@
 # interface.py
+import time
+
 import streamlit as st
 import torch
 import numpy as np
@@ -190,6 +192,19 @@ with col1:
 with col2:
     st.header("Console Output")
     console_output = st.empty()
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    curr = time.time()
+    while True:
+        step = time.time() - curr
+        percent = min(int((step / 4000) * 100), 100)
+        progress_bar.progress(percent)
+
+        if step >= 4000:
+            break
+
+        time.sleep(1)
 
     # Display captured output in the console section
     if 'captured_output' in st.session_state:

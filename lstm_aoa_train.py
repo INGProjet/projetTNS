@@ -88,13 +88,8 @@ def objective_function(solution):
 # Définit les bornes des hyperparamètres
 problem_dict = {
     "bounds": FloatVar(
-<<<<<<< HEAD
-        lb=[1, 0.0, 0.001],
-        ub=[3, 0.4, 0.005],
-=======
         lb=[1, 0.0, 0.0015],
         ub=[3, 0.3, 0.003],
->>>>>>> 16f1d9334d486ef84c0b96e74fc762daad16f145
         name=["num_layers", "dropout", "learning_rate"]
     ),
     "minmax": "min",
@@ -104,27 +99,17 @@ problem_dict = {
 def train(new_model=False, cpu = 4):
 
     print("Starting AOA optimization...")
-<<<<<<< HEAD
-    optimizer_aoa = OriginalAOA(epoch=1, pop_size=10, verbose=True)
-    best_solution = optimizer_aoa.solve(problem_dict, mode='process', n_workers=4)
-=======
     optimizer_aoa = OriginalAOA(epoch=5, pop_size=10, verbose=True)
     best_solution = optimizer_aoa.solve(problem_dict, mode='process', n_workers=cores)
->>>>>>> 16f1d9334d486ef84c0b96e74fc762daad16f145
     best_params = best_solution.solution
     num_layers, dropout, learning_rate = int(best_params[0]), float(best_params[1]), float(best_params[2])
     dropout = 0.0 if num_layers == 1 else dropout
 
     print("Found best hyperparameters.")
 
-<<<<<<< HEAD
-    epochs_start, epochs_end = 0, 5
-    patience, trials, best_acc = 10, 0, 0
-=======
     epochs_start, epochs_end = 0, 30
     patience, trials, best_acc = 4, 0, 0
 
->>>>>>> 16f1d9334d486ef84c0b96e74fc762daad16f145
 
     model = LSTMClassifier(input_dim, hidden_dim, num_layers, dropout, False, output_dim, batch_size).double().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -161,11 +146,7 @@ def train(new_model=False, cpu = 4):
             loss.backward()
             optimizer.step()
             i += 1
-<<<<<<< HEAD
-            sys.stdout.write('\r' + spinner[i % len(spinner)] + f' Processing[{j}/4]...')
-=======
             sys.stdout.write('\r' + spinner[i % len(spinner)] + f' Processing[{i}/{len(train_loader)}]...')
->>>>>>> 16f1d9334d486ef84c0b96e74fc762daad16f145
             sys.stdout.flush()
 
         val_loss, _, _, val_acc = get_train_metric(model, val_loader, criterion, batch_size)

@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from aoa import OriginalAOA
 from dataset import CSIDataset
-from model import LSTMClassifier
+from model.LSTMClassifier import LSTMClassifier
 from metrics import get_train_metric
 from mealpy import FloatVar
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -88,16 +88,17 @@ def objective_function(solution):
 problem_dict = {
     "bounds": FloatVar(
         lb=[1, 0.0, 0.001],
-        ub=[4, 0.4, 0.005],
+        ub=[3, 0.4, 0.005],
         name=["num_layers", "dropout", "learning_rate"]
     ),
     "minmax": "min",
     "obj_func": objective_function
 }
 
-def train(new_model=False):
+def train(new_model=False, cpu = 4):
+
     print("Starting AOA optimization...")
-    optimizer_aoa = OriginalAOA(epoch=1000, pop_size=10, verbose=True)
+    optimizer_aoa = OriginalAOA(epoch=1, pop_size=10, verbose=True)
     best_solution = optimizer_aoa.solve(problem_dict, mode='process', n_workers=4)
     best_params = best_solution.solution
     num_layers, dropout, learning_rate = int(best_params[0]), float(best_params[1]), float(best_params[2])
@@ -105,7 +106,7 @@ def train(new_model=False):
 
     print("Found best hyperparameters.")
 
-    epochs_start, epochs_end = 0, 30
+    epochs_start, epochs_end = 0, 5
     patience, trials, best_acc = 10, 0, 0
 
     model = LSTMClassifier(input_dim, hidden_dim, num_layers, dropout, False, output_dim, batch_size).double().to(device)
@@ -143,7 +144,7 @@ def train(new_model=False):
             loss.backward()
             optimizer.step()
             i += 1
-            sys.stdout.write('\r' + spinner[i % len(spinner)] + ' Processing...')
+            sys.stdout.write('\r' + spinner[i % len(spinner)] + f' Processing[{j}/4]...')
             sys.stdout.flush()
 
         val_loss, _, _, val_acc = get_train_metric(model, val_loader, criterion, batch_size)

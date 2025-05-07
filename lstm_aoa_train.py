@@ -95,7 +95,7 @@ problem_dict = {
     "obj_func": objective_function
 }
 
-def train(optimize=True, layers=2, dropout_rate=0.0, lr=0.0015, batch=4, cores = 1, aoa_epoch=5, aoa_pop=10, lstm_epoch=30):
+def train(optimize=True, layers=2, dropout_rate=0.0, lr=0.0015, batch=4, cores = 1, aoa_epoch=5, aoa_pop=10, lstm_epoch=30, callback=None):
     num_layers = layers
     dropout = dropout_rate
     learning_rate = lr
@@ -153,7 +153,7 @@ def train(optimize=True, layers=2, dropout_rate=0.0, lr=0.0015, batch=4, cores =
 
         val_loss, _, _, val_acc = get_train_metric(model, val_loader, criterion, batch)
         train_loss, _, _, train_acc = get_train_metric(model, train_loader, criterion, batch)
-        tqdm.write(f"Epoch {epoch + 1}/{epochs_end} - Val Acc: {val_acc:.4f}, Val Loss: {val_loss:.4f} - Train Loss: {train_loss:.2f}, Train Acc.: {train_acc:2.2%}")
+        tqdm.write(f"Epoch {epoch + 1}/{epochs_end} - Val Acc: {val_acc:.4f}, Val Loss: {val_loss:.4f} - Train Acc.: {train_acc:2.2%}, Train Loss: {train_loss:.2f}")
         if val_acc > best_acc:
             trials = 0
             best_acc = val_acc
